@@ -12,6 +12,7 @@ The importer is intentionally separate from the main CircuitPedal application. I
 - Capture post text for local research.
 - Classify links, including likely schematic/reference links.
 - Record layout/reference image URLs without downloading binaries by default.
+- Record iframe/embed URLs used by older posts for circuit material.
 - Capture comments and identify replies by the blog author where possible.
 - Cache fetched HTML locally and resume safely on later runs.
 - Produce JSONL records plus a crawl summary.
@@ -88,6 +89,7 @@ Each JSONL line represents one blog post and includes:
 - outgoing links with a basic classification
 - likely schematic links
 - image URLs
+- iframe/embed URLs
 - comments/replies
 - fetch timestamp
 - content hash
