@@ -120,6 +120,7 @@ def _extract_comments(
         ".comments .comment, .comment-thread li"
     )
     seen: set[tuple[str, str]] = set()
+    normalized_blog_authors = {name.casefold() for name in blog_author_names}
 
     for node in candidates:
         if not isinstance(node, Tag):
@@ -160,8 +161,7 @@ def _extract_comments(
                 author=author,
                 text=text,
                 published_at=str(published_at) if published_at else None,
-                is_blog_author=author.casefold()
-                in {name.casefold() for name in blog_author_names},
+                is_blog_author=author.casefold() in normalized_blog_authors,
                 depth=max(0, depth - 1),
             )
         )
@@ -189,6 +189,7 @@ def parse_post(
     links: list[LinkRecord] = []
     schematic_links: list[str] = []
     image_urls: list[str] = []
+    embedded_urls: list[str] = []
 
     if body is not None:
         seen_links: set[str] = set()
@@ -211,6 +212,14 @@ def parse_post(
                 seen_images.add(url)
                 image_urls.append(url)
 
+        seen_embeds: set[str] = set()
+        for embed in body.find_all(["iframe", "embed"]):
+            candidate = embed.get("src")
+            url = _absolute_url(source_url, candidate)
+            if url and url not in seen_embeds:
+                seen_embeds.add(url)
+                embedded_urls.append(url)
+
         body_text = _clean_text(body.get_text(" ", strip=True))
     else:
         body_text = ""
@@ -225,9 +234,15 @@ def parse_post(
     )
 
     content_hash = hashlib.sha256(
-        (title + "\n" + body_text + "\n" + "\n".join(link.url for link in links)).encode(
-            "utf-8"
-        )
+        (
+            title
+            + "\n"
+            + body_text
+            + "\n"
+            + "\n".join(link.url for link in links)
+            + "\n"
+            + "\n".join(embedded_urls)
+        ).encode("utf-8")
     ).hexdigest()
 
     return PostRecord(
@@ -240,6 +255,7 @@ def parse_post(
         links=links,
         schematic_links=schematic_links,
         image_urls=image_urls,
+        embedded_urls=embedded_urls,
         comments=comments,
         scraped_at=datetime.now(UTC).isoformat(),
         content_hash=content_hash,
