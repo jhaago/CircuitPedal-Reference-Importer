@@ -9,6 +9,7 @@ HTML = """
   <div class="post-body entry-content">
     <p>Socket Q1 and experiment. <a href="https://example.com/schematic.pdf">Schematic</a> for reference.</p>
     <img src="https://example.com/layout.png">
+    <iframe src="https://example.com/embedded-circuit"></iframe>
   </div>
   <div class="post-labels">
     <a rel="tag">Fuzz</a>
@@ -40,6 +41,7 @@ def test_parse_post_extracts_evidence():
     assert record.verification_status == "verified"
     assert record.schematic_links == ["https://example.com/schematic.pdf"]
     assert record.image_urls == ["https://example.com/layout.png"]
+    assert record.embedded_urls == ["https://example.com/embedded-circuit"]
     assert len(record.comments) == 2
     assert record.comments[0].is_blog_author is False
     assert record.comments[1].is_blog_author is True
