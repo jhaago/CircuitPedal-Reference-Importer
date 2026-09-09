@@ -31,6 +31,7 @@ class PostRecord:
     links: list[LinkRecord] = field(default_factory=list)
     schematic_links: list[str] = field(default_factory=list)
     image_urls: list[str] = field(default_factory=list)
+    embedded_urls: list[str] = field(default_factory=list)
     comments: list[CommentRecord] = field(default_factory=list)
     scraped_at: str = ""
     content_hash: str = ""
