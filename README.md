@@ -16,6 +16,7 @@ The importer is intentionally separate from the main CircuitPedal application. I
 - Capture comments and identify replies by the blog author where possible.
 - Cache fetched HTML locally and resume safely on later runs.
 - Produce JSONL records plus a crawl summary.
+- Provide a mixed-sample validation report before a full crawl.
 - Be polite to the source site with explicit request throttling.
 
 ## Important source-use boundary
@@ -31,7 +32,7 @@ CircuitPedal should ultimately use independently implemented circuit models and 
 ## Setup
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 ```
 
 macOS/Linux:
@@ -48,7 +49,42 @@ Windows PowerShell:
 pip install -e ".[dev]"
 ```
 
-## Run
+## Validate before a full crawl
+
+Run:
+
+```bash
+circuitpedal-importer validate
+```
+
+The validation command discovers the catalogue, inspects a distributed candidate pool, and selects a mixed set of representative posts where available, including:
+
+- Verified and Unverified posts
+- posts with schematic links
+- posts with iframe/embed references
+- posts with community comments
+- posts with Effects Layouts author replies
+- posts with richer reference-link sets
+- older and recent catalogue entries
+
+It prints a readable report to the terminal and also writes:
+
+```text
+data/validation-report.txt
+data/validation-report.json
+```
+
+For a larger validation sample:
+
+```bash
+circuitpedal-importer validate --sample-size 12 --candidate-pool 40
+```
+
+Use `--refresh` if you deliberately want to bypass cached pages.
+
+The report includes each selected post's source URL so it can be manually compared with the original page.
+
+## Crawl
 
 A small test crawl:
 
