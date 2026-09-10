@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
@@ -92,7 +92,12 @@ def select_validation_cases(
     selected: list[ValidationCase] = []
     used: set[str] = set()
 
-    def take(reason: str, predicate: Callable[[PostRecord], bool]) -> None:
+    def take(
+        reason: str,
+        predicate: Callable[[PostRecord], bool],
+        *,
+        prefer_high_score: bool = True,
+    ) -> None:
         if len(selected) >= sample_size:
             return
         matches = [
@@ -102,18 +107,19 @@ def select_validation_cases(
         ]
         if not matches:
             return
-        record = max(matches, key=_record_score)
+        chooser = max if prefer_high_score else min
+        record = chooser(matches, key=_record_score)
         selected.append(ValidationCase(reason=reason, record=record))
         used.add(record.source_url)
 
+    # Select specialist evidence first so a generic category cannot consume the
+    # only useful example of a schematic, embed, or author correction.
     take("Unverified post", lambda record: record.verification_status == "unverified")
-    take("Verified post", lambda record: record.verification_status == "verified")
     take("Schematic link", lambda record: bool(record.schematic_links))
     take("Embedded reference", lambda record: bool(record.embedded_urls))
     take("Author reply", lambda record: _author_reply_count(record) > 0)
-    take("Community comments", lambda record: bool(record.comments))
-    take("Rich reference set", lambda record: len(record.links) >= 3)
 
+    # Preserve the actual temporal edges of the inspected catalogue sample.
     remaining = [record for record in records if record.source_url not in used]
     dated = [record for record in remaining if record.published_at]
     if dated and len(selected) < sample_size:
@@ -127,6 +133,19 @@ def select_validation_cases(
         newest = max(dated, key=lambda record: record.published_at or "")
         selected.append(ValidationCase(reason="Recent catalogue post", record=newest))
         used.add(newest.source_url)
+
+    # Generic coverage comes later and deliberately prefers a less feature-rich
+    # record, leaving unusual pages available for their specialist categories.
+    take(
+        "Verified post",
+        lambda record: record.verification_status == "verified",
+        prefer_high_score=False,
+    )
+    take(
+        "Community comments",
+        lambda record: bool(record.comments) and _author_reply_count(record) == 0,
+    )
+    take("Rich reference set", lambda record: len(record.links) >= 3)
 
     for record in sorted(
         (record for record in records if record.source_url not in used),
